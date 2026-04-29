@@ -1,12 +1,13 @@
 // Supported UI locales. Adding a new locale requires creating a new
 // dictionary in `./locales/` and registering it in `./index.tsx`.
-export type Locale = 'en' | 'zh-CN';
+export type Locale = 'en' | 'zh-CN' | 'pt-BR';
 
-export const LOCALES: Locale[] = ['en', 'zh-CN'];
+export const LOCALES: Locale[] = ['en', 'zh-CN', 'pt-BR'];
 
 export const LOCALE_LABEL: Record<Locale, string> = {
   'en': 'English',
   'zh-CN': '简体中文',
+  'pt-BR': 'Português (Brasil)',
 };
 
 // Translation dictionary shape — flat keys, dot-namespaced. We keep it
