@@ -467,6 +467,21 @@ export function createSseResponse(res, { keepAliveIntervalMs = SSE_KEEPALIVE_INT
 export async function startServer({ port = 7456, returnServer = false } = {}) {
   const app = express();
   app.use(express.json({ limit: '4mb' }));
+  // Optional HTTP basic auth — set OD_USERNAME and OD_PASSWORD env vars to enable.
+  if (process.env.OD_USERNAME && process.env.OD_PASSWORD) {
+    app.use((req, res, next) => {
+      const authHeader = req.headers['authorization'] || '';
+      const [scheme, encoded] = authHeader.split(' ');
+      if (scheme === 'Basic' && encoded) {
+        const [user, pass] = Buffer.from(encoded, 'base64').toString().split(':');
+        if (user === process.env.OD_USERNAME && pass === process.env.OD_PASSWORD) {
+          return next();
+        }
+      }
+      res.set('WWW-Authenticate', 'Basic realm="Open Design"');
+      return res.status(401).send('Unauthorized');
+    });
+  }
   const db = openDatabase(PROJECT_ROOT, { dataDir: RUNTIME_DATA_DIR });
 
   if (process.env.OD_CODEX_DISABLE_PLUGINS === '1') {
@@ -2265,7 +2280,7 @@ export async function startServer({ port = 7456, returnServer = false } = {}) {
   }
 
   return new Promise((resolve) => {
-    const server = app.listen(port, '127.0.0.1', () => {
+    const server = app.listen(port, process.env.OD_HOST || '127.0.0.1', () => {
       const address = server.address();
       const actualPort = typeof address === 'object' && address ? address.port : port;
       const url = `http://127.0.0.1:${actualPort}`;
@@ -2301,6 +2316,8 @@ function escapeHtml(s) {
 }
 
 function isLocalSameOrigin(req, port) {
+  // In cloud/Railway mode (OD_HOST != 127.0.0.1), skip origin enforcement.
+  if (process.env.OD_HOST && process.env.OD_HOST !== '127.0.0.1') return true;
   const allowedHosts = new Set([
     `127.0.0.1:${port}`,
     `localhost:${port}`,
